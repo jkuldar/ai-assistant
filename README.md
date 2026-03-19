@@ -1,6 +1,14 @@
-# Numbers Don't Lie
+# Counting Calories
 
-App is available on URL: https://numbers-dont-lie-frontend-production.up.railway.app/
+# App is available on URL -> https://counting-calories-production.up.railway.app
+
+# Testing questions are answered in file -> testing.md
+
+
+
+
+
+
 
 A wellness platform with AI-powered meal planning, recipe management, nutritional analysis, health tracking, and data visualization — powered by OpenAI.
 
@@ -90,7 +98,7 @@ A wellness platform with AI-powered meal planning, recipe management, nutritiona
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd numbers-dont-lie
+   cd counting-calories
    ```
 
 2. **Backend**

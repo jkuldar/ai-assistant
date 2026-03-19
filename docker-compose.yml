@@ -24,7 +24,7 @@ services:
   backend:
     build: ./backend
     container_name: wellness-backend
-    command: sh -c "npx prisma migrate deploy && npm run start:dev"
+    command: npm run start:dev
     environment:
       DATABASE_URL: postgresql://wellness:wellness@postgres:5432/wellness_db?sslmode=require
       JWT_ACCESS_SECRET: dev_access_secret
