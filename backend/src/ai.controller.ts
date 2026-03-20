@@ -1,4 +1,4 @@
-import { Controller, Get, Post, UseGuards, Req, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Query } from '@nestjs/common';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { AIService } from './ai.service';
 
@@ -6,6 +6,35 @@ import { AIService } from './ai.service';
 @UseGuards(JwtAuthGuard)
 export class AIController {
   constructor(private readonly aiService: AIService) {}
+
+  /**
+   * Chat with the AI wellness assistant
+   */
+  @Post('chat')
+  async chat(
+    @Req() req: any,
+    @Body() body: { message: string; conversationHistory: { role: string; content: string }[] },
+  ) {
+    const userId = req.user.userId;
+    const message = (body.message || '').trim();
+    if (!message) {
+      return { success: false, message: 'Message is required.' };
+    }
+
+    const history = Array.isArray(body.conversationHistory) ? body.conversationHistory : [];
+
+    try {
+      const result = await this.aiService.chat(userId, message, history);
+      return {
+        success: true,
+        reply: result.reply,
+        conversationHistory: result.conversationHistory,
+      };
+    } catch (error) {
+      const msg = (error as Error).message || 'Chat failed';
+      return { success: false, message: msg };
+    }
+  }
 
   /**
    * Get AI insight for the current user

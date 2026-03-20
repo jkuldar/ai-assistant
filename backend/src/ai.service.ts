@@ -778,4 +778,410 @@ You MUST respond with a valid JSON object only — no markdown code fences, no e
       },
     });
   }
+
+  // ── Chat assistant ─────────────────────────────────────────────────
+
+  private readonly CHAT_MODEL = 'gpt-4o-mini';
+  private readonly MAX_HISTORY = 10;
+
+  private readonly chatTools = [
+    {
+      type: 'function' as const,
+      function: {
+        name: 'get_health_metrics',
+        description: 'Read the user\'s health metrics such as weight, BMI, activity, sleep, stress, wellness score, or progress. Use this when the user asks about their health data.',
+        parameters: {
+          type: 'object',
+          properties: {
+            metric_type: {
+              type: 'string',
+              enum: ['weight', 'bmi', 'activity', 'sleep', 'stress', 'wellness', 'progress', 'all'],
+              description: 'Which health metric to retrieve',
+            },
+            time_period: {
+              type: 'string',
+              enum: ['latest', '7d', '30d'],
+              description: 'Time period for the data',
+            },
+          },
+          required: ['metric_type'],
+        },
+      },
+    },
+    {
+      type: 'function' as const,
+      function: {
+        name: 'get_nutrition_data',
+        description: 'Read the user\'s nutrition logs for a specific date, including calories, protein, carbs, and fats.',
+        parameters: {
+          type: 'object',
+          properties: {
+            date: {
+              type: 'string',
+              description: 'Date in YYYY-MM-DD format',
+            },
+          },
+          required: ['date'],
+        },
+      },
+    },
+    {
+      type: 'function' as const,
+      function: {
+        name: 'get_meal_plan',
+        description: 'Read the user\'s meal plan for a given date, including meals and their nutritional info.',
+        parameters: {
+          type: 'object',
+          properties: {
+            date: {
+              type: 'string',
+              description: 'Date in YYYY-MM-DD format',
+            },
+          },
+          required: ['date'],
+        },
+      },
+    },
+    {
+      type: 'function' as const,
+      function: {
+        name: 'get_recipe_info',
+        description: 'Read details of a specific recipe by its ID, including ingredients, steps, and nutritional info.',
+        parameters: {
+          type: 'object',
+          properties: {
+            recipeId: {
+              type: 'string',
+              description: 'The UUID of the recipe',
+            },
+          },
+          required: ['recipeId'],
+        },
+      },
+    },
+  ];
+
+  /**
+   * Handle a chat message with function calling support
+   */
+  async chat(
+    userId: string,
+    message: string,
+    conversationHistory: { role: string; content: string }[],
+  ): Promise<{ reply: string; conversationHistory: { role: string; content: string }[] }> {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY not configured');
+    }
+
+    // Build messages with sliding window
+    const trimmedHistory = conversationHistory.slice(-this.MAX_HISTORY);
+
+    const messages: any[] = [
+      { role: 'system', content: this.getChatSystemPrompt() },
+      ...trimmedHistory,
+      { role: 'user', content: message },
+    ];
+
+    // Call OpenAI with function calling — allow up to 3 rounds of tool calls
+    let assistantMessage: string | null = null;
+
+    for (let round = 0; round < 4; round++) {
+      const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: this.CHAT_MODEL,
+          messages,
+          tools: this.chatTools,
+          temperature: 0.7,
+          max_tokens: 1024,
+        }),
+      });
+
+      if (!apiResponse.ok) {
+        const errData = await apiResponse.json().catch(() => ({}));
+        throw new Error(`OpenAI API error: ${(errData as any).error?.message || apiResponse.statusText}`);
+      }
+
+      const data = await apiResponse.json();
+      const choice = data.choices?.[0];
+
+      if (!choice) {
+        throw new Error('No response from OpenAI');
+      }
+
+      // If the model wants to call tools
+      if (choice.finish_reason === 'tool_calls' || choice.message?.tool_calls?.length) {
+        messages.push(choice.message);
+
+        for (const toolCall of choice.message.tool_calls) {
+          const fnName = toolCall.function.name;
+          const fnArgs = JSON.parse(toolCall.function.arguments);
+          let result: string;
+
+          try {
+            result = await this.executeTool(userId, fnName, fnArgs);
+          } catch (err) {
+            result = JSON.stringify({ error: (err as Error).message });
+          }
+
+          messages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: result,
+          });
+        }
+        continue; // next round with tool results
+      }
+
+      // Normal text response
+      assistantMessage = choice.message?.content ?? 'Sorry, I could not generate a response.';
+      break;
+    }
+
+    if (!assistantMessage) {
+      assistantMessage = 'Sorry, I was unable to complete your request. Please try again.';
+    }
+
+    // Build updated conversation history
+    const updatedHistory = [
+      ...trimmedHistory,
+      { role: 'user', content: message },
+      { role: 'assistant', content: assistantMessage },
+    ].slice(-this.MAX_HISTORY);
+
+    return { reply: assistantMessage, conversationHistory: updatedHistory };
+  }
+
+  /**
+   * Execute a tool call and return the result as a string
+   */
+  private async executeTool(userId: string, fnName: string, args: any): Promise<string> {
+    switch (fnName) {
+      case 'get_health_metrics':
+        return JSON.stringify(await this.toolGetHealthMetrics(userId, args.metric_type, args.time_period));
+      case 'get_nutrition_data':
+        return JSON.stringify(await this.toolGetNutritionData(userId, args.date));
+      case 'get_meal_plan':
+        return JSON.stringify(await this.toolGetMealPlan(userId, args.date));
+      case 'get_recipe_info':
+        return JSON.stringify(await this.toolGetRecipeInfo(args.recipeId));
+      default:
+        return JSON.stringify({ error: `Unknown function: ${fnName}` });
+    }
+  }
+
+  /**
+   * Tool: get_health_metrics
+   */
+  private async toolGetHealthMetrics(userId: string, metricType: string, timePeriod?: string) {
+    const profile = await this.prisma.healthProfile.findUnique({ where: { userId } });
+    if (!profile) return { error: 'No health profile found. Please create one first.' };
+
+    const result: any = {};
+
+    if (metricType === 'weight' || metricType === 'all') {
+      result.currentWeightKg = profile.currentWeightKg;
+      result.targetWeightKg = profile.targetWeightKg;
+      // Weight history
+      const days = timePeriod === '30d' ? 30 : timePeriod === '7d' ? 7 : 1;
+      if (timePeriod && timePeriod !== 'latest') {
+        const history = await this.prisma.weightHistory.findMany({
+          where: { userId, recordedAt: { gte: new Date(Date.now() - days * 86400000) } },
+          orderBy: { recordedAt: 'desc' },
+          take: 30,
+          select: { weightKg: true, recordedAt: true },
+        });
+        result.weightHistory = history;
+      }
+    }
+
+    if (metricType === 'bmi' || metricType === 'all') {
+      result.bmi = profile.bmi;
+      result.bmiClass = profile.bmiClass;
+      result.heightCm = profile.heightCm;
+    }
+
+    if (metricType === 'activity' || metricType === 'all') {
+      const days = timePeriod === '30d' ? 30 : timePeriod === '7d' ? 7 : 7;
+      const activities = await this.prisma.activityEntry.findMany({
+        where: { userId, loggedAt: { gte: new Date(Date.now() - days * 86400000) } },
+        orderBy: { loggedAt: 'desc' },
+        take: 20,
+        select: { type: true, durationMin: true, intensity: true, calories: true, steps: true, loggedAt: true },
+      });
+      result.recentActivities = activities;
+      result.activityStreakDays = profile.activityStreakDays;
+    }
+
+    if (metricType === 'sleep' || metricType === 'all') {
+      result.sleepHoursPerDay = profile.sleepHoursPerDay;
+    }
+
+    if (metricType === 'stress' || metricType === 'all') {
+      result.stressLevel = profile.stressLevel;
+    }
+
+    if (metricType === 'wellness' || metricType === 'all') {
+      result.wellnessScore = profile.wellnessScore;
+    }
+
+    if (metricType === 'progress' || metricType === 'all') {
+      result.progressPercent = profile.progressPercent;
+      result.primaryGoal = profile.primaryGoal;
+      result.activityStreakDays = profile.activityStreakDays;
+      result.habitStreakDays = profile.habitStreakDays;
+    }
+
+    return result;
+  }
+
+  /**
+   * Tool: get_nutrition_data
+   */
+  private async toolGetNutritionData(userId: string, date: string) {
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+
+    const logs = await this.prisma.nutritionalLog.findMany({
+      where: { userId, date: { gte: start, lte: end } },
+      select: { mealType: true, calories: true, protein: true, carbs: true, fats: true, date: true },
+      orderBy: { date: 'asc' },
+    });
+
+    if (logs.length === 0) return { date, message: 'No nutrition data logged for this date.' };
+
+    const totals = logs.reduce(
+      (acc, l) => ({
+        calories: acc.calories + l.calories,
+        protein: acc.protein + l.protein,
+        carbs: acc.carbs + l.carbs,
+        fats: acc.fats + l.fats,
+      }),
+      { calories: 0, protein: 0, carbs: 0, fats: 0 },
+    );
+
+    return { date, meals: logs, totals };
+  }
+
+  /**
+   * Tool: get_meal_plan
+   */
+  private async toolGetMealPlan(userId: string, date: string) {
+    const target = new Date(date);
+
+    const plan = await this.prisma.mealPlan.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        startDate: { lte: target },
+        endDate: { gte: target },
+      },
+      include: {
+        meals: {
+          where: {
+            date: {
+              gte: new Date(new Date(date).setHours(0, 0, 0, 0)),
+              lte: new Date(new Date(date).setHours(23, 59, 59, 999)),
+            },
+          },
+          include: {
+            recipe: { select: { title: true, cuisine: true, time: true, dietaryTags: true } },
+          },
+          orderBy: { sortOrder: 'asc' },
+        },
+      },
+    });
+
+    if (!plan) return { date, message: 'No active meal plan for this date.' };
+
+    return {
+      date,
+      planId: plan.id,
+      duration: plan.duration,
+      meals: plan.meals.map((m) => ({
+        mealType: m.mealType,
+        recipeName: m.recipe?.title ?? m.customName ?? 'Custom meal',
+        calories: m.calories,
+        protein: m.protein,
+        carbs: m.carbs,
+        fats: m.fats,
+        servings: m.servings,
+      })),
+    };
+  }
+
+  /**
+   * Tool: get_recipe_info
+   */
+  private async toolGetRecipeInfo(recipeId: string) {
+    const recipe = await this.prisma.recipe.findUnique({
+      where: { id: recipeId },
+      include: {
+        ingredients: {
+          include: { ingredient: { select: { label: true, unit: true, calories: true, protein: true, carbs: true, fats: true } } },
+        },
+        preparation: { orderBy: { stepNumber: 'asc' }, select: { stepNumber: true, step: true, description: true } },
+      },
+    });
+
+    if (!recipe) return { error: 'Recipe not found.' };
+
+    return {
+      id: recipe.id,
+      title: recipe.title,
+      cuisine: recipe.cuisine,
+      meal: recipe.meal,
+      servings: recipe.servings,
+      summary: recipe.summary,
+      time: recipe.time,
+      difficultyLevel: recipe.difficultyLevel,
+      dietaryTags: recipe.dietaryTags,
+      ingredients: recipe.ingredients.map((ri) => ({
+        name: ri.ingredient.label,
+        quantity: ri.quantity,
+        unit: ri.ingredient.unit,
+        calories: ri.ingredient.calories,
+        protein: ri.ingredient.protein,
+      })),
+      steps: recipe.preparation.map((s) => ({
+        step: s.stepNumber,
+        title: s.step,
+        description: s.description,
+      })),
+    };
+  }
+
+  /**
+   * System prompt for the chat assistant
+   */
+  private getChatSystemPrompt(): string {
+    return `You are a friendly, knowledgeable health and wellness assistant for the "Counting Calories" platform. Your role is to help users understand their health data, nutrition, meal plans, and recipes.
+
+Guidelines:
+- Be warm, encouraging, and supportive
+- Give concise, practical advice
+- Use the available tools to look up the user's actual data before answering questions about their health, nutrition, or meal plans
+- When referencing data, mention specific numbers (e.g. "You logged 1,850 kcal today")
+- If you don't have enough data, let the user know what they can do (e.g. "Log your meals in the Nutrition tracker to see daily totals")
+- Today's date is ${new Date().toISOString().split('T')[0]}
+
+Safety rules:
+- NEVER provide medical diagnoses or treatment advice
+- NEVER recommend unsafe weight loss (>1 kg/week without medical supervision)
+- ALWAYS suggest consulting a healthcare provider for medical concerns
+- Respect dietary restrictions and allergies
+
+You can help with:
+- Explaining health metrics (weight, BMI, activity, wellness score)
+- Reviewing nutrition logs and daily calorie/macro intake
+- Discussing meal plans and suggesting improvements
+- Looking up recipe details and nutritional information
+- General wellness and healthy eating advice`;
+  }
 }
