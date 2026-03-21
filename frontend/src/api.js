@@ -618,4 +618,12 @@ export class API {
   async removeShoppingItem(itemId) {
     return this.request(`/shopping-lists/items/${itemId}`, { method: 'DELETE' });
   }
+
+  // Chat
+  async sendChatMessage(message, conversationHistory = []) {
+    return this.request('/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message, conversationHistory }),
+    });
+  }
 }

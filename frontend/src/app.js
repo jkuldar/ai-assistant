@@ -10,6 +10,7 @@ import { MealPlanView } from './meal-plan-view.js';
 import { RecipeBrowserView } from './recipe-browser.js';
 import { NutritionTrackerView } from './nutrition-tracker.js';
 import { ShoppingListView } from './shopping-list-view.js';
+import { ChatView } from './chat-view.js';
 import { showToast, showConfirm } from './utils.js';
 
 class App {
@@ -60,6 +61,8 @@ class App {
               <button class="nav-link" data-view="shopping">Shopping</button>
             </div>
           </div>
+
+          <button class="nav-link" data-view="chat">Chat</button>
 
           <div class="nav-dropdown">
             <button class="nav-link nav-dropdown-toggle" data-dropdown="account">Account <span class="dropdown-arrow">▾</span></button>
@@ -497,6 +500,9 @@ class App {
         case 'shopping':
           await this.renderShopping(container);
           break;
+        case 'chat':
+          await this.renderChat(container);
+          break;
       }
     } catch (error) {
       container.innerHTML = `<div class="error-state">Failed to load view: ${error.message}</div>`;
@@ -598,6 +604,18 @@ class App {
     const view = new ShoppingListView(el, this.api);
     await view.load();
     this.components.shopping = view;
+  }
+
+  async renderChat(container) {
+    container.innerHTML = '<div id="chat-container"></div>';
+    const el = document.getElementById('chat-container');
+    // Reuse existing chat component to preserve conversation history
+    if (!this.components.chat) {
+      this.components.chat = new ChatView(el, this.api);
+    } else {
+      this.components.chat.container = el;
+    }
+    await this.components.chat.load();
   }
 
   showAddWeightModal() {
