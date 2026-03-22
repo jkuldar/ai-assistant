@@ -34,7 +34,7 @@ class App {
     nav.innerHTML = `
       <nav class="main-nav">
         <div class="nav-brand">
-          <h1><span class="brand-thin">COUNTING</span> <span class="brand-bold">CALORIES</span></h1>
+          <h1><span class="brand-bold">Üvi</span></h1>
         </div>
         <button class="burger-menu" id="burger-menu" aria-label="Toggle menu">
           <span></span>
@@ -319,7 +319,7 @@ class App {
         <div class="auth-container">
           <div class="auth-card">
             <div class="auth-header">
-              <h2>Counting Calories</h2>
+              <h2>Üvi</h2>
               <p class="auth-subtitle">Create a new password</p>
             </div>
             <div class="auth-body">

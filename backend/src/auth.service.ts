@@ -252,10 +252,10 @@ export class AuthService {
 
     await this.sendEmail({
       to: email,
-      subject: 'Verify your Numbers Don\'t Lie account',
+      subject: 'Verify your Üvi account',
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:2rem">
-          <h2 style="color:#6a1b9a">Numbers Don't Lie</h2>
+          <h2 style="color:#6a1b9a">Üvi</h2>
           <p>Thanks for signing up! Click the button below to verify your email address.</p>
           <a href="${verificationUrl}"
              style="display:inline-block;margin:1.5rem 0;padding:0.75rem 1.5rem;
@@ -277,10 +277,10 @@ export class AuthService {
 
     await this.sendEmail({
       to: email,
-      subject: 'Reset your Numbers Don\'t Lie password',
+      subject: 'Reset your Üvi password',
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:2rem">
-          <h2 style="color:#6a1b9a">Numbers Don't Lie</h2>
+          <h2 style="color:#6a1b9a">Üvi</h2>
           <p>You requested a password reset. Click the button below to choose a new password.</p>
           <a href="${resetUrl}"
              style="display:inline-block;margin:1.5rem 0;padding:0.75rem 1.5rem;
@@ -304,7 +304,7 @@ export class AuthService {
    */
   /** Returns true only if the email was successfully delivered. */
   private async sendEmail({ to, subject, html }: { to: string; subject: string; html: string }): Promise<boolean> {
-    const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || 'Numbers Don\'t Lie <onboarding@resend.dev>';
+    const from = process.env.EMAIL_FROM || process.env.SMTP_FROM || 'Üvi <onboarding@resend.dev>';
 
     if (process.env.RESEND_API_KEY) {
       // ── Resend REST API ──────────────────────────────────────────────────────

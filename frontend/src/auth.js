@@ -16,7 +16,7 @@ export class Auth {
           <div class="auth-branding-inner">
             <div class="auth-brand-logo">
               <span class="auth-brand-icon">📊</span>
-              <h1>Counting Calories</h1>
+              <h1>Üvi</h1>
             </div>
             <p class="auth-brand-tagline">Your privacy-focused wellness platform</p>
             <ul class="auth-features">
@@ -56,7 +56,7 @@ export class Auth {
           <button class="btn-icon btn-darkmode auth-theme-btn" id="auth-darkmode-btn" title="Toggle dark mode" aria-label="Toggle dark mode"></button>
           <div class="auth-card">
             <div class="auth-header">
-              <h2>Counting Calories</h2>
+              <h2>Üvi</h2>
               <p class="auth-subtitle">Welcome back</p>
             </div>
 

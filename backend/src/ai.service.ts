@@ -1161,7 +1161,7 @@ You MUST respond with a valid JSON object only — no markdown code fences, no e
    * System prompt for the chat assistant
    */
   private getChatSystemPrompt(): string {
-    return `You are a friendly, knowledgeable health and wellness assistant for the "Counting Calories" platform. Your role is to help users understand their health data, nutrition, meal plans, and recipes.
+    return `You are a friendly, knowledgeable health and wellness assistant for the "Üvi" platform. Your role is to help users understand their health data, nutrition, meal plans, and recipes.
 
 Guidelines:
 - Be warm, encouraging, and supportive
