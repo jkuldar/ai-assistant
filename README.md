@@ -10,13 +10,13 @@
 
 
 
-A wellness platform with AI-powered meal planning, recipe management, nutritional analysis, health tracking, and data visualization — powered by OpenAI.
+A wellness platform with AI-powered meal planning, recipe management, nutritional analysis, health tracking, data visualization, and a conversational AI wellness assistant — powered by OpenAI.
 
 ## Tech Stack
 
 - **Backend:** NestJS + PostgreSQL + Prisma ORM
 - **Frontend:** Vanilla JavaScript + Chart.js + Vite
-- **AI:** OpenAI gpt-4.1-mini (chat completions, function calling, embeddings)
+- **AI:** OpenAI gpt-4.1-mini (insights, meal planning, embeddings) + gpt-4o-mini (chat assistant with function calling)
 - **Deployment:** Railway
 
 ## Features
@@ -50,6 +50,19 @@ A wellness platform with AI-powered meal planning, recipe management, nutritiona
 - Daily, weekly, and monthly nutritional tracking with AI analysis
 - Macro breakdown pie charts, progress bars, and caloric trend lines
 - Cross-feature integration: nutrition updates wellness score, allergies auto-filter recipes, BMI/activity drive calorie targets
+
+### Project 3 — AI Wellness Assistant
+- Conversational chat interface for natural-language interaction with platform data
+- OpenAI function calling with 4 data-access tools: `get_health_metrics`, `get_nutrition_data`, `get_meal_plan`, `get_recipe_info`
+- Multi-turn conversation with sliding-window context management (last 10 messages)
+- Up to 3 sequential tool-call rounds per request for complex queries
+- Health metrics queries: weight, BMI, activity, sleep, stress, wellness score, progress
+- Nutrition queries: daily calorie/macro intake, meal breakdowns
+- Meal plan queries: today's meals, upcoming meals, plan details
+- Recipe queries: ingredients, preparation steps, nutritional info
+- General wellness advice with safety guardrails (no medical diagnoses, suggests professional consultation)
+- Typing indicator and loading states in the chat UI
+- Protected by existing JWT authentication
 
 ## Usage Guide
 
@@ -85,6 +98,19 @@ A wellness platform with AI-powered meal planning, recipe management, nutritiona
 1. Navigate to **Food → Shopping**.
 2. Lists are auto-generated from meal plans. Items are grouped by category (dairy, produce, grains, protein, etc.).
 3. Check off items, adjust quantities, or remove items individually.
+
+### AI Chat Assistant
+1. Click **Chat** in the navigation bar.
+2. Ask questions in natural language — the assistant has access to your health data, nutrition logs, meal plans, and recipes.
+3. Example questions:
+   - "What's my current BMI?"
+   - "How many calories did I eat today?"
+   - "What's on my meal plan for today?"
+   - "Tell me about my dinner recipe"
+   - "How can I improve my sleep?"
+   - "Am I making progress toward my weight goal?"
+4. The assistant remembers context within the conversation (up to 10 messages), so follow-up questions like "Can you tell me more about that?" work naturally.
+5. The assistant will never provide medical diagnoses — it suggests consulting a healthcare provider for medical concerns.
 
 ## Local Development
 
@@ -190,9 +216,46 @@ Every AI prompt includes one or more few-shot examples that demonstrate the expe
 - Step 3 of meal planning acts as a refinement pass on the output from Steps 1–2.
 - Function calling supports multi-round loops (up to 5 rounds) — if the AI requests multiple functions, each result is fed back and the model continues until it produces a final text response.
 
+## AI Chat Assistant Architecture
+
+### Two-Layer Design
+
+The chat assistant follows a two-layer architecture:
+
+1. **Conversation Layer** — Handles the chat interface, message history, input validation, and response rendering. The frontend maintains conversation history in-memory and sends it with each request. The backend enforces a sliding window of the last 10 messages to manage token usage.
+
+2. **Data Access Layer** — Connects to platform features via OpenAI function calling. When the AI determines it needs user data to answer a question, it invokes one or more tool functions that query Prisma directly.
+
+### Function Calling Tools
+
+| Function | Description | Parameters |
+|---|---|---|
+| `get_health_metrics` | Reads weight, BMI, activity, sleep, stress, wellness score, progress | `metric_type` (enum), `time_period` (optional) |
+| `get_nutrition_data` | Reads nutrition logs with calorie/macro totals for a date | `date` (YYYY-MM-DD) |
+| `get_meal_plan` | Reads active meal plan meals for a date | `date` (YYYY-MM-DD) |
+| `get_recipe_info` | Reads full recipe with ingredients, steps, nutritional info | `recipeId` (UUID) |
+
+The assistant supports up to 3 sequential tool-call rounds per request, allowing it to gather data from multiple sources before composing a response.
+
+### System Prompt Design
+
+The chat system prompt defines:
+- **Role and capabilities** — wellness assistant that can access health data, nutrition, meal plans, and recipes
+- **Tone** — warm, encouraging, concise, practical
+- **Data usage** — instructs the model to use tools to look up real data before answering
+- **Safety guardrails** — no medical diagnoses, no unsafe weight loss recommendations, suggests professional consultation
+- **Current date** — injected dynamically so the model can reason about "today" and "this week"
+
+### Conversation Memory
+
+- Sliding window of the last 10 messages (user + assistant turns)
+- History is maintained client-side and sent with each request
+- The backend trims to the window size before passing to OpenAI
+- No server-side persistence of chat history — conversations are ephemeral per session
+
 ## AI Model Selection Rationale
 
-The application uses **gpt-4.1-mini** for all AI tasks. This model was chosen for the following reasons:
+The application uses **gpt-4.1-mini** for insight generation, meal planning, and recipe tasks, and **gpt-4o-mini** for the chat assistant. Models were chosen for the following reasons:
 
 | Factor | Rationale |
 |---|---|
@@ -201,12 +264,14 @@ The application uses **gpt-4.1-mini** for all AI tasks. This model was chosen fo
 | **Context length** | 128k context window accommodates large RAG recipe sets (30+ recipes in a single prompt) |
 | **Cost and latency** | Significantly cheaper and faster than gpt-4o while maintaining adequate quality for meal planning |
 | **Function calling** | Native tool/function calling support makes nutritional calculation delegation reliable |
+| **Chat assistant (gpt-4o-mini)** | Optimized for conversational interactions — fast response times, strong instruction following, and reliable function calling at low cost |
 
 Temperature and top_p are tuned per task:
 - **Deterministic tasks** (function calling, portion scaling): `temperature=0, top_p=1.0` — exact numerical results
 - **Structured output** (meal structure, refinement): `temperature=0.3–0.5, top_p=0.8–0.85` — reproducible but slightly varied
 - **Creative tasks** (recipe generation, meal variety): `temperature=0.7–0.8, top_p=0.95` — wide sampling for novel results
 - **Narrative tasks** (health insights, analysis summaries): `temperature=0.5–0.7, top_p=0.85–0.9` — readable prose that stays grounded
+- **Chat assistant**: `temperature=0.7` — conversational and natural while staying factual when referencing user data
 
 ## Data Model Documentation
 
@@ -346,6 +411,7 @@ All OpenAI calls go through a centralized `callWithRetry()` method that handles:
 - `GET /ai/insight` - Get personalized insights (cached 24h)
 - `GET /ai/insights/history` - Insight history
 - `POST /ai/invalidate-cache` - Force regeneration
+- `POST /ai/chat` - Chat with the AI wellness assistant (`{ message, conversationHistory }`)
 
 ### Privacy
 - `GET /privacy-settings` - Get settings
