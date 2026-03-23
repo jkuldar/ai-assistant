@@ -1497,8 +1497,26 @@ button:disabled {
   margin-bottom: 1rem;
 }
 
-.auth-brand-icon {
-  font-size: 2.5rem;
+/* üVi circular logo image */
+.uvi-logo-img {
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.uvi-logo-sm {
+  width: 2.8rem;
+  height: 2.8rem;
+}
+
+/* mobile brand block inside auth card */
+.auth-mobile-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .auth-brand-logo h1 {
@@ -1531,9 +1549,12 @@ button:disabled {
 }
 
 .feature-icon {
-  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  margin-top: 0.1rem;
+  width: 2rem;
+  margin-top: 0.15rem;
 }
 
 .auth-features li div {
@@ -1569,14 +1590,17 @@ button:disabled {
   position: absolute;
   top: 1rem;
   right: 1rem;
-  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 0.4rem 0.6rem;
+  padding: 0.45rem 0.6rem;
   cursor: pointer;
   line-height: 1;
   transition: background 0.2s;
+  color: var(--muted);
 }
 .auth-theme-btn:hover {
   background: var(--hover);
@@ -1602,7 +1626,7 @@ button:disabled {
   font-size: 1.75rem;
   font-weight: 700;
   color: var(--primary);
-  margin-bottom: 0.5rem;
+  margin: 0;
 }
 
 .auth-subtitle {
@@ -1617,14 +1641,21 @@ button:disabled {
     display: flex;
   }
 
-  /* Card header is redundant on desktop (branding panel already shows the title) */
-  .auth-header h2 {
+  /* Mobile brand block is redundant on desktop (branding panel already shows the logo) */
+  .auth-mobile-logo {
     display: none;
   }
 
   .auth-header {
     margin-bottom: 1.5rem;
   }
+}
+
+/* Remove app-content offset when showing auth (nav is hidden) */
+#app-content:has(.auth-page) {
+  margin-top: 0;
+  padding: 0;
+  max-width: none;
 }
 
 

@@ -43,7 +43,7 @@ export class Dashboard {
     if (!this.profile) {
       this.container.innerHTML = `
         <div class="empty-state">
-          <h3>Welcome to Üvi</h3>
+          <h3>Welcome to üVi</h3>
           <p>Complete your health profile to see personalized insights and tracking.</p>
           <button class="btn-primary" id="create-profile-btn">Create Profile</button>
         </div>

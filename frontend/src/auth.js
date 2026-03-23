@@ -15,37 +15,45 @@ export class Auth {
         <div class="auth-branding">
           <div class="auth-branding-inner">
             <div class="auth-brand-logo">
-              <span class="auth-brand-icon">📊</span>
-              <h1>Üvi</h1>
+              <img src="/uvi-logo.svg" class="uvi-logo-img" alt="üVi logo"/>
+              <h1>üVi</h1>
             </div>
-            <p class="auth-brand-tagline">Your privacy-focused wellness platform</p>
+            <p class="auth-brand-tagline">Your private wellness companion</p>
             <ul class="auth-features">
               <li>
-                <span class="feature-icon">🔒</span>
+                <span class="feature-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </span>
                 <div>
-                  <strong>Privacy first</strong>
-                  <span>Your data belongs to you alone</span>
+                  <strong>Track what matters</strong>
+                  <span>Log weight, sleep, activity and body metrics in one place</span>
                 </div>
               </li>
               <li>
-                <span class="feature-icon">📈</span>
+                <span class="feature-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h2a2 2 0 0 0 2-2z"/></svg>
+                </span>
                 <div>
-                  <strong>Health overview</strong>
-                  <span>Track weight, sleep, activity and more</span>
+                  <strong>Nutrition &amp; meal planning</strong>
+                  <span>Build meals from recipes, log nutrients and auto-generate shopping lists</span>
                 </div>
               </li>
               <li>
-                <span class="feature-icon">🤖</span>
+                <span class="feature-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 1 7 7c0 2.76-1.68 5.1-4 6.32V17a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-1.68C6.68 14.1 5 11.76 5 9a7 7 0 0 1 7-7z"/></svg>
+                </span>
                 <div>
-                  <strong>AI insights</strong>
-                  <span>Personalised recommendations based on your data</span>
+                  <strong>AI-powered insights</strong>
+                  <span>Personalised recommendations and answers based on your health data</span>
                 </div>
               </li>
               <li>
-                <span class="feature-icon">📊</span>
+                <span class="feature-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </span>
                 <div>
-                  <strong>Detailed charts</strong>
-                  <span>Visualise your health progress over time</span>
+                  <strong>Private by design</strong>
+                  <span>Your data is end-to-end encrypted and never shared</span>
                 </div>
               </li>
             </ul>
@@ -56,8 +64,11 @@ export class Auth {
           <button class="btn-icon btn-darkmode auth-theme-btn" id="auth-darkmode-btn" title="Toggle dark mode" aria-label="Toggle dark mode"></button>
           <div class="auth-card">
             <div class="auth-header">
-              <h2>Üvi</h2>
-              <p class="auth-subtitle">Welcome back</p>
+              <div class="auth-mobile-logo">
+                <img src="/uvi-logo.svg" class="uvi-logo-img uvi-logo-sm" alt="üVi logo"/>
+                <h2>üVi</h2>
+              </div>
+              <p class="auth-subtitle">${this.currentMode === 'register' ? 'Create your account' : 'Welcome back'}</p>
             </div>
 
             <div class="auth-tabs">
@@ -226,7 +237,9 @@ export class Auth {
     if (themBtn) {
       const updateThemeBtn = () => {
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        themBtn.textContent = isDark ? '☀️' : '🌙';
+        themBtn.innerHTML = isDark
+          ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/></svg>`
+          : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
         themBtn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
       };
       updateThemeBtn();
