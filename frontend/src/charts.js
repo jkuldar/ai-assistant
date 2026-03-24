@@ -10,6 +10,18 @@ export class Charts {
     this.charts = {};
   }
 
+  getChartTheme() {
+    const style = getComputedStyle(document.documentElement);
+    const text = style.getPropertyValue('--text').trim() || '#212529';
+    const muted = style.getPropertyValue('--muted').trim() || '#6c757d';
+    const isDark = document.documentElement.dataset.theme === 'dark';
+    return {
+      labelColor: text,
+      tickColor: muted,
+      gridColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.07)',
+    };
+  }
+
   async load() {
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -88,6 +100,7 @@ export class Charts {
     const targetLine = targetWeight ? Array(labels.length).fill(targetWeight) : [];
 
     const ctx = canvas.getContext('2d');
+    const wTheme = this.getChartTheme();
     this.charts.weight = new Chart(ctx, {
       type: 'line',
       data: {
@@ -117,9 +130,7 @@ export class Charts {
         aspectRatio: 2,
         plugins: {
           legend: {
-            labels: {
-              color: '#e8ecf5',
-            },
+            labels: { color: wTheme.labelColor, usePointStyle: true, pointStyle: 'line' },
           },
           tooltip: {
             mode: 'index',
@@ -128,12 +139,12 @@ export class Charts {
         },
         scales: {
           y: {
-            ticks: { color: '#9aa0b5' },
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: { color: wTheme.tickColor },
+            grid: { color: wTheme.gridColor },
           },
           x: {
-            ticks: { color: '#9aa0b5' },
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: { color: wTheme.tickColor },
+            grid: { color: wTheme.gridColor },
           },
         },
       },
@@ -216,6 +227,7 @@ export class Charts {
     const counts = labels.map(week => weeklyData[week]);
 
     const ctx = canvas.getContext('2d');
+    const aTheme = this.getChartTheme();
     this.charts.activity = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -234,21 +246,21 @@ export class Charts {
         aspectRatio: 2,
         plugins: {
           legend: {
-            labels: { color: '#e8ecf5' },
+            labels: { color: aTheme.labelColor, usePointStyle: true, pointStyle: 'rect' },
           },
         },
         scales: {
           y: {
             beginAtZero: true,
             ticks: { 
-              color: '#9aa0b5',
+              color: aTheme.tickColor,
               stepSize: 1,
             },
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            grid: { color: aTheme.gridColor },
           },
           x: {
-            ticks: { color: '#9aa0b5' },
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: { color: aTheme.tickColor },
+            grid: { color: aTheme.gridColor },
           },
         },
       },
@@ -279,6 +291,7 @@ export class Charts {
     const scores = sorted.map(entry => entry.wellnessScore);
 
     const ctx = canvas.getContext('2d');
+    const wlTheme = this.getChartTheme();
     this.charts.wellness = new Chart(ctx, {
       type: 'line',
       data: {
@@ -298,19 +311,19 @@ export class Charts {
         aspectRatio: 2,
         plugins: {
           legend: {
-            labels: { color: '#e8ecf5' },
+            labels: { color: wlTheme.labelColor, usePointStyle: true, pointStyle: 'line' },
           },
         },
         scales: {
           y: {
             min: 0,
             max: 100,
-            ticks: { color: '#9aa0b5' },
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: { color: wlTheme.tickColor },
+            grid: { color: wlTheme.gridColor },
           },
           x: {
-            ticks: { color: '#9aa0b5' },
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: { color: wlTheme.tickColor },
+            grid: { color: wlTheme.gridColor },
           },
         },
       },
@@ -364,6 +377,7 @@ export class Charts {
     }
 
     const ctx = canvas.getContext('2d');
+    const ncTheme = this.getChartTheme();
     this.charts.nutritionCal = new Chart(ctx, {
       type: 'line',
       data: {
@@ -390,10 +404,10 @@ export class Charts {
       },
       options: {
         responsive: true, maintainAspectRatio: true, aspectRatio: 2,
-        plugins: { legend: { labels: { color: '#e8ecf5' } }, tooltip: { mode: 'index', intersect: false } },
+        plugins: { legend: { labels: { color: ncTheme.labelColor, usePointStyle: true, pointStyle: 'line' } }, tooltip: { mode: 'index', intersect: false } },
         scales: {
-          y: { beginAtZero: false, ticks: { color: '#9aa0b5' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-          x: { ticks: { color: '#9aa0b5', maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { beginAtZero: false, ticks: { color: ncTheme.tickColor }, grid: { color: ncTheme.gridColor } },
+          x: { ticks: { color: ncTheme.tickColor, maxTicksLimit: 10 }, grid: { color: ncTheme.gridColor } },
         },
       },
     });
@@ -413,6 +427,7 @@ export class Charts {
     }
     const labels = days.map(d => new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
     const ctx = canvas.getContext('2d');
+    const nmTheme = this.getChartTheme();
     this.charts.nutritionMacros = new Chart(ctx, {
       type: 'line',
       data: {
@@ -425,10 +440,10 @@ export class Charts {
       },
       options: {
         responsive: true, maintainAspectRatio: true, aspectRatio: 2.5,
-        plugins: { legend: { labels: { color: '#e8ecf5' } }, tooltip: { mode: 'index', intersect: false } },
+        plugins: { legend: { labels: { color: nmTheme.labelColor, usePointStyle: true, pointStyle: 'line' } }, tooltip: { mode: 'index', intersect: false } },
         scales: {
-          y: { beginAtZero: true, ticks: { color: '#9aa0b5' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-          x: { ticks: { color: '#9aa0b5', maxTicksLimit: 10 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { beginAtZero: true, ticks: { color: nmTheme.tickColor }, grid: { color: nmTheme.gridColor } },
+          x: { ticks: { color: nmTheme.tickColor, maxTicksLimit: 10 }, grid: { color: nmTheme.gridColor } },
         },
       },
     });
