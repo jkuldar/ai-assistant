@@ -90,6 +90,12 @@ body {
   box-shadow: var(--shadow);
 }
 
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .nav-brand h1 {
   font-size: 1.4rem;
   color: var(--text);
@@ -99,6 +105,11 @@ body {
   align-items: baseline;
   gap: 0.5rem;
   white-space: nowrap;
+}
+
+.nav-logo-img {
+  width: 2rem;
+  height: 2rem;
 }
 
 .brand-thin {
@@ -2031,6 +2042,11 @@ button:disabled {
 
   .nav-brand h1 {
     font-size: 1.1rem;
+  }
+
+  .nav-logo-img {
+    width: 1.75rem;
+    height: 1.75rem;
   }
 
   .nav-links {

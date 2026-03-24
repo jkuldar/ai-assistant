@@ -34,6 +34,7 @@ class App {
     nav.innerHTML = `
       <nav class="main-nav">
         <div class="nav-brand">
+          <img src="/uvi-logo-from-jpg.png" class="uvi-logo-img nav-logo-img" alt="üVi logo"/>
           <h1><span class="brand-bold">üVi</span></h1>
         </div>
         <button class="burger-menu" id="burger-menu" aria-label="Toggle menu">
@@ -319,7 +320,10 @@ class App {
         <div class="auth-container">
           <div class="auth-card">
             <div class="auth-header">
-              <h2>üVi</h2>
+              <div class="auth-mobile-logo">
+                <img src="/uvi-logo-from-jpg.png" class="uvi-logo-img uvi-logo-sm" alt="üVi logo"/>
+                <h2>üVi</h2>
+              </div>
               <p class="auth-subtitle">Create a new password</p>
             </div>
             <div class="auth-body">

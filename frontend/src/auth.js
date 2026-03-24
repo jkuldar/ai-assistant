@@ -15,7 +15,7 @@ export class Auth {
         <div class="auth-branding">
           <div class="auth-branding-inner">
             <div class="auth-brand-logo">
-              <img src="/uvi-logo.svg" class="uvi-logo-img" alt="üVi logo"/>
+              <img src="/uvi-logo-from-jpg.png" class="uvi-logo-img" alt="üVi logo"/>
               <h1>üVi</h1>
             </div>
             <p class="auth-brand-tagline">Your private wellness companion</p>
@@ -65,7 +65,7 @@ export class Auth {
           <div class="auth-card">
             <div class="auth-header">
               <div class="auth-mobile-logo">
-                <img src="/uvi-logo.svg" class="uvi-logo-img uvi-logo-sm" alt="üVi logo"/>
+                <img src="/uvi-logo-from-jpg.png" class="uvi-logo-img uvi-logo-sm" alt="üVi logo"/>
                 <h2>üVi</h2>
               </div>
               <p class="auth-subtitle">${this.currentMode === 'register' ? 'Create your account' : 'Welcome back'}</p>
