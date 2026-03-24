@@ -23,6 +23,7 @@ export class OpenAIHelper {
   async chat(
     messages: { role: string; content: string }[],
     opts: {
+      model?: string;
       temperature?: number;
       topP?: number;
       maxTokens?: number;
@@ -32,7 +33,7 @@ export class OpenAIHelper {
     } = {},
   ): Promise<any> {
     const body: any = {
-      model: this.CHAT_MODEL,
+      model: opts.model || this.CHAT_MODEL,
       messages,
       temperature: opts.temperature ?? 0.7,
       max_tokens: opts.maxTokens ?? 4096,

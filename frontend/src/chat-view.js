@@ -4,11 +4,37 @@ export class ChatView {
     this.api = api;
     this.conversationHistory = [];
     this.isLoading = false;
+    this.restoreHistory();
+  }
+
+  restoreHistory() {
+    try {
+      const saved = sessionStorage.getItem('chat_history');
+      if (saved) {
+        this.conversationHistory = JSON.parse(saved);
+      }
+    } catch { /* ignore corrupt data */ }
+  }
+
+  saveHistory() {
+    try {
+      sessionStorage.setItem('chat_history', JSON.stringify(this.conversationHistory));
+    } catch { /* ignore quota errors */ }
   }
 
   async load() {
     this.render();
+    this.renderRestoredHistory();
     this.attachListeners();
+  }
+
+  renderRestoredHistory() {
+    if (this.conversationHistory.length === 0) return;
+    for (const msg of this.conversationHistory) {
+      if (msg.role === 'user' || msg.role === 'assistant') {
+        this.appendMessage(msg.role, msg.content);
+      }
+    }
   }
 
   render() {
@@ -63,6 +89,7 @@ export class ChatView {
 
       if (data.success) {
         this.conversationHistory = data.conversationHistory || [];
+        this.saveHistory();
         this.appendMessage('assistant', data.reply);
       } else {
         this.appendMessage('assistant', data.message || 'Sorry, something went wrong. Please try again.');

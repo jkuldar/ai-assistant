@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
+import { OpenAIHelper } from './openai-helper.service';
 import { createHash } from 'crypto';
 import { decryptArray } from './encryption.util';
 
@@ -78,7 +79,7 @@ export class AIService {
     private readonly MAX_CONTEXT_LENGTH = 3000;
     private readonly AI_MODEL = 'gpt-4.1-mini';
 
-    constructor(private prisma: PrismaService) {}
+    constructor(private prisma: PrismaService, private openai: OpenAIHelper) {}
 
     /**
    * Get AI insight with caching and fallback
@@ -782,7 +783,7 @@ You MUST respond with a valid JSON object only — no markdown code fences, no e
   // ── Chat assistant ─────────────────────────────────────────────────
 
   private readonly CHAT_MODEL = 'gpt-4o-mini';
-  private readonly MAX_HISTORY = 10;
+  private readonly MAX_HISTORY = 20;
 
   private readonly chatTools = [
     {
@@ -812,13 +813,17 @@ You MUST respond with a valid JSON object only — no markdown code fences, no e
       type: 'function' as const,
       function: {
         name: 'get_nutrition_data',
-        description: 'Read the user\'s nutrition logs for a specific date, including calories, protein, carbs, and fats.',
+        description: 'Read the user\'s nutrition logs for a date or date range, including calories, protein, carbs, and fats. Use end_date for weekly or multi-day queries.',
         parameters: {
           type: 'object',
           properties: {
             date: {
               type: 'string',
-              description: 'Date in YYYY-MM-DD format',
+              description: 'Start date in YYYY-MM-DD format',
+            },
+            end_date: {
+              type: 'string',
+              description: 'Optional end date in YYYY-MM-DD format for range queries (e.g. weekly totals)',
             },
           },
           required: ['date'],
@@ -886,27 +891,14 @@ You MUST respond with a valid JSON object only — no markdown code fences, no e
     let assistantMessage: string | null = null;
 
     for (let round = 0; round < 4; round++) {
-      const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: this.CHAT_MODEL,
-          messages,
-          tools: this.chatTools,
-          temperature: 0.7,
-          max_tokens: 1024,
-        }),
+      const data = await this.openai.chat(messages, {
+        model: this.CHAT_MODEL,
+        temperature: 0.7,
+        topP: 0.9,
+        maxTokens: 1024,
+        tools: this.chatTools,
       });
 
-      if (!apiResponse.ok) {
-        const errData = await apiResponse.json().catch(() => ({}));
-        throw new Error(`OpenAI API error: ${(errData as any).error?.message || apiResponse.statusText}`);
-      }
-
-      const data = await apiResponse.json();
       const choice = data.choices?.[0];
 
       if (!choice) {
@@ -957,18 +949,57 @@ You MUST respond with a valid JSON object only — no markdown code fences, no e
   }
 
   /**
+   * Validate a YYYY-MM-DD date string
+   */
+  private isValidDate(dateStr: string): boolean {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
+    const d = new Date(dateStr);
+    return !isNaN(d.getTime());
+  }
+
+  /**
+   * Validate a UUID string
+   */
+  private isValidUUID(str: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+  }
+
+  /**
    * Execute a tool call and return the result as a string
    */
   private async executeTool(userId: string, fnName: string, args: any): Promise<string> {
     switch (fnName) {
-      case 'get_health_metrics':
+      case 'get_health_metrics': {
+        const validMetrics = ['weight', 'bmi', 'activity', 'sleep', 'stress', 'wellness', 'progress', 'all'];
+        if (!args.metric_type || !validMetrics.includes(args.metric_type)) {
+          return JSON.stringify({ error: `Invalid metric_type. Must be one of: ${validMetrics.join(', ')}` });
+        }
+        if (args.time_period && !['latest', '7d', '30d'].includes(args.time_period)) {
+          return JSON.stringify({ error: "Invalid time_period. Must be one of: latest, 7d, 30d" });
+        }
         return JSON.stringify(await this.toolGetHealthMetrics(userId, args.metric_type, args.time_period));
-      case 'get_nutrition_data':
-        return JSON.stringify(await this.toolGetNutritionData(userId, args.date));
-      case 'get_meal_plan':
+      }
+      case 'get_nutrition_data': {
+        if (!args.date || !this.isValidDate(args.date)) {
+          return JSON.stringify({ error: 'Invalid date format. Please use YYYY-MM-DD (e.g. 2026-03-24).' });
+        }
+        if (args.end_date && !this.isValidDate(args.end_date)) {
+          return JSON.stringify({ error: 'Invalid end_date format. Please use YYYY-MM-DD (e.g. 2026-03-24).' });
+        }
+        return JSON.stringify(await this.toolGetNutritionData(userId, args.date, args.end_date));
+      }
+      case 'get_meal_plan': {
+        if (!args.date || !this.isValidDate(args.date)) {
+          return JSON.stringify({ error: 'Invalid date format. Please use YYYY-MM-DD (e.g. 2026-03-24).' });
+        }
         return JSON.stringify(await this.toolGetMealPlan(userId, args.date));
-      case 'get_recipe_info':
+      }
+      case 'get_recipe_info': {
+        if (!args.recipeId || !this.isValidUUID(args.recipeId)) {
+          return JSON.stringify({ error: 'Invalid recipeId. Please provide a valid UUID.' });
+        }
         return JSON.stringify(await this.toolGetRecipeInfo(args.recipeId));
+      }
       default:
         return JSON.stringify({ error: `Unknown function: ${fnName}` });
     }
@@ -1040,12 +1071,12 @@ You MUST respond with a valid JSON object only — no markdown code fences, no e
   }
 
   /**
-   * Tool: get_nutrition_data
+   * Tool: get_nutrition_data (supports single date or date range)
    */
-  private async toolGetNutritionData(userId: string, date: string) {
+  private async toolGetNutritionData(userId: string, date: string, endDate?: string) {
     const start = new Date(date);
     start.setHours(0, 0, 0, 0);
-    const end = new Date(date);
+    const end = new Date(endDate || date);
     end.setHours(23, 59, 59, 999);
 
     const logs = await this.prisma.nutritionalLog.findMany({
@@ -1054,7 +1085,10 @@ You MUST respond with a valid JSON object only — no markdown code fences, no e
       orderBy: { date: 'asc' },
     });
 
-    if (logs.length === 0) return { date, message: 'No nutrition data logged for this date.' };
+    const isRange = endDate && endDate !== date;
+    const label = isRange ? `${date} to ${endDate}` : date;
+
+    if (logs.length === 0) return { date: label, message: `No nutrition data logged for ${isRange ? 'this date range' : 'this date'}.` };
 
     const totals = logs.reduce(
       (acc, l) => ({
@@ -1065,6 +1099,32 @@ You MUST respond with a valid JSON object only — no markdown code fences, no e
       }),
       { calories: 0, protein: 0, carbs: 0, fats: 0 },
     );
+
+    if (isRange) {
+      // Group by date for range queries
+      const byDate: Record<string, { calories: number; protein: number; carbs: number; fats: number }> = {};
+      for (const l of logs) {
+        const d = new Date(l.date).toISOString().split('T')[0];
+        if (!byDate[d]) byDate[d] = { calories: 0, protein: 0, carbs: 0, fats: 0 };
+        byDate[d].calories += l.calories;
+        byDate[d].protein += l.protein;
+        byDate[d].carbs += l.carbs;
+        byDate[d].fats += l.fats;
+      }
+      const days = Object.keys(byDate).length;
+      return {
+        dateRange: label,
+        daysWithData: days,
+        dailyBreakdown: byDate,
+        totals,
+        dailyAverages: {
+          calories: Math.round(totals.calories / days),
+          protein: Math.round(totals.protein / days),
+          carbs: Math.round(totals.carbs / days),
+          fats: Math.round(totals.fats / days),
+        },
+      };
+    }
 
     return { date, meals: logs, totals };
   }
@@ -1182,6 +1242,20 @@ You can help with:
 - Reviewing nutrition logs and daily calorie/macro intake
 - Discussing meal plans and suggesting improvements
 - Looking up recipe details and nutritional information
-- General wellness and healthy eating advice`;
+- General wellness and healthy eating advice
+
+Response format examples by query type:
+
+**Health metrics:** "Your current BMI is 24.2, which falls in the **normal weight** range. Your weight is 74.5 kg against a target of 70 kg — you're 4.5 kg away. Over the past 30 days you've lost 1.2 kg, so you're trending in the right direction."
+
+**Meal plan overview:** "Here's your meal plan for today:\n- **Breakfast:** Greek Yoghurt Parfait (420 kcal, 28g protein)\n- **Lunch:** Mediterranean Quinoa Bowl (510 kcal, 18g protein)\n- **Dinner:** Grilled Salmon with Vegetables (620 kcal, 42g protein)\nTotal: ~1,550 kcal | 88g protein | 165g carbs | 58g fats"
+
+**Nutritional analysis:** "Today you've consumed 1,850 kcal — that's 150 kcal under your 2,000 kcal target. Your protein is at 95g (target: 120g), so you might want to add a high-protein snack like Greek yoghurt or a handful of almonds."
+
+**Recipe details:** "**Mediterranean Quinoa Bowl** (25 min, easy)\nIngredients: 180g quinoa, 100g cherry tomatoes, 75g cucumber, 50g feta…\nSteps:\n1. Rinse and cook quinoa in salted water (15 min)\n2. Dice vegetables while quinoa cooks\n3. Combine and top with olive oil dressing"
+
+**Progress & goals:** "You're 62% of the way to your weight-loss goal. Your activity streak is 12 days — great consistency! Your wellness score is 73/100. To push it higher, try adding one more workout day and improving sleep from 6.5 to 7+ hours."
+
+**General wellness:** "Improving sleep quality can significantly impact your wellness score. Try these tips: avoid screens 30 min before bed, keep a consistent sleep schedule, and limit caffeine after 2 PM. If sleep issues persist, consider consulting a healthcare provider."`;
   }
 }
