@@ -2470,11 +2470,14 @@ details.recommendation-card[open] > summary::after {
   flex-shrink: 0;
 }
 
-.heatmap-cell.level-0 { background: rgba(255, 255, 255, 0.06); }
+.heatmap-cell.level-0 { background: rgba(0, 0, 0, 0.08); }
 .heatmap-cell.level-1 { background: rgba(106, 27, 154, 0.3); }
 .heatmap-cell.level-2 { background: rgba(106, 27, 154, 0.65); }
 .heatmap-cell.level-3 { background: rgba(106, 27, 154, 1); }
-.heatmap-cell.future  { opacity: 0.2; pointer-events: none; }
+.heatmap-cell.future  { opacity: 0.35; pointer-events: none; }
+
+[data-theme="dark"] .heatmap-cell.level-0 { background: rgba(255, 255, 255, 0.06); }
+[data-theme="dark"] .heatmap-cell.future  { opacity: 0.2; }
 
 .heatmap-legend {
   display: flex;
