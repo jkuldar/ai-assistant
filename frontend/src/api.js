@@ -1,7 +1,7 @@
 // API communication module
 export class API {
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    this.baseURL = window.__API_URL__ || import.meta.env.VITE_API_URL || 'http://localhost:3000';
     this.token = localStorage.getItem('ndli_access_token') || '';
   }
 
