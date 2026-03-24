@@ -257,11 +257,11 @@ class App {
             <div class="auth-body">
               <div class="verification-notice">
                 <div class="verification-icon">✅</div>
-                <h3>Suurepärane!</h3>
+                <h3>All done!</h3>
                 <p>Your email has been verified successfully.</p>
-                <p>Nüüd saad sisse logida.</p>
+                <p>You can now sign in to your account.</p>
                 <button class="btn-primary" id="goto-login">
-                  Logi sisse
+                  Sign in
                 </button>
               </div>
             </div>
