@@ -1599,12 +1599,12 @@ button:disabled {
 
 .auth-theme-btn {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: 0.75rem;
+  right: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--panel);
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 0.45rem 0.6rem;
@@ -1612,12 +1612,14 @@ button:disabled {
   line-height: 1;
   transition: background 0.2s;
   color: var(--muted);
+  z-index: 1;
 }
 .auth-theme-btn:hover {
   background: var(--hover);
 }
 
 .auth-card {
+  position: relative;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);

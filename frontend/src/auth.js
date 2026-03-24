@@ -61,8 +61,8 @@ export class Auth {
         </div>
 
         <div class="auth-container">
-          <button class="btn-icon btn-darkmode auth-theme-btn" id="auth-darkmode-btn" title="Toggle dark mode" aria-label="Toggle dark mode"></button>
           <div class="auth-card">
+          <button class="btn-icon btn-darkmode auth-theme-btn" id="auth-darkmode-btn" title="Toggle dark mode" aria-label="Toggle dark mode"></button>
             <div class="auth-header">
               <div class="auth-mobile-logo">
                 <img src="/uvi-logo-from-jpg.png" class="uvi-logo-img uvi-logo-sm" alt="üVi logo"/>
