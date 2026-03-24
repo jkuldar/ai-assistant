@@ -174,6 +174,7 @@ class App {
 
       if (confirmed) {
         localStorage.removeItem('ndli_access_token');
+        localStorage.removeItem('ndli_refresh_token');
         location.reload();
       }
     });

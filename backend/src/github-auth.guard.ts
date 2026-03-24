@@ -12,4 +12,10 @@ export class GithubAuthGuard extends AuthGuard('github') {
     }
     return super.canActivate(context);
   }
+
+  getAuthenticateOptions(_context: ExecutionContext) {
+    // Setting allow_signup to false and omitting cached login forces GitHub
+    // to show the authorization page instead of silently auto-signing in.
+    return { allow_signup: false };
+  }
 }

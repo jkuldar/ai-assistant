@@ -12,4 +12,8 @@ export class GoogleAuthGuard extends AuthGuard('google') {
     }
     return super.canActivate(context);
   }
+
+  getAuthenticateOptions(_context: ExecutionContext) {
+    return { prompt: 'select_account' };
+  }
 }
