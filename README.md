@@ -1,6 +1,6 @@
 # Üvi
 
-# App is available on URL -> https://counting-calories-production.up.railway.app
+# App is available on URL -> https://kood-production.up.railway.app/
 
 # Testing questions are answered in file -> testing.md
 
