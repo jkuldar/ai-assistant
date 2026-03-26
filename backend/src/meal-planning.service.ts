@@ -246,6 +246,7 @@ And these available recipes from our database:
 ${recipeSummaries}
 
 Create a ${dayCount}-day meal plan with ${mealsPerDay} meals per day.
+You MUST use exactly these dates (in this order): ${dates.join(', ')}
 ${ctx.allergies.length ? `MUST AVOID (allergies): ${ctx.allergies.join(', ')}` : ''}
 ${ctx.dislikedIngredients.length ? `Avoid: ${ctx.dislikedIngredients.join(', ')}` : ''}
 
@@ -677,11 +678,10 @@ Return empty array [] if the plan looks good.`;
   private generateFallbackStructure(ctx: any, dayCount: number, mealsPerDay: number, recipes: any[]): any[] {
     const meals: any[] = [];
     const mealTypes = ['breakfast', 'lunch', 'dinner', 'snack', 'snack'];
-    const startDate = new Date();
+    const [sy, sm, sd] = (ctx.startDate || new Date().toISOString().split('T')[0]).split('-').map(Number);
 
     for (let d = 0; d < dayCount; d++) {
-      const dt = new Date(startDate);
-      dt.setDate(dt.getDate() + d);
+      const dt = new Date(Date.UTC(sy, sm - 1, sd + d));
       const dateStr = dt.toISOString().split('T')[0];
 
       for (let m = 0; m < mealsPerDay; m++) {
